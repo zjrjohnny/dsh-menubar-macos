@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible DShMenu problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed API keys, session content, usernames, and private paths from logs.
+          required: true
+  - type: input
+    attributes:
+      label: DShMenu version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: macOS, Node.js, and dsh versions
+      placeholder: macOS 26.6.1; Node 24.18.0; dsh 0.1.0-rc.6
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include exact steps, expected behavior, and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Sanitized diagnostics
+      description: Never include API keys, session content, or unredacted private paths.

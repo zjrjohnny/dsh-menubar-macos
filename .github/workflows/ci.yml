@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-checks:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependency
+        run: brew install ripgrep
+      - name: Run isolated checks
+        run: ./tests/check.sh
+      - name: Build app
+        run: ./build_app.sh
+      - name: Verify ad-hoc signature
+        run: codesign --verify --deep --strict --verbose=2 build/DShMenu.app

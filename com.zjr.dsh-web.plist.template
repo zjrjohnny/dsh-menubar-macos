@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.zjr.dsh-web</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>__STABLE_BIN__/node</string>
+		<string>__STABLE_BIN__/dsh</string>
+		<string>web</string>
+		<string>--port</string>
+		<string>__PORT__</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>DSH_HOME</key>
+		<string>__DSH_HOME__</string>
+		<key>DSH_NODE_PATH</key>
+		<string>__STABLE_BIN__/node</string>
+		<key>DSH_CLI_PATH</key>
+		<string>__STABLE_BIN__/dsh</string>
+		<key>DSH_PORT</key>
+		<string>__PORT__</string>
+		<key>HOME</key>
+		<string>__HOME__</string>
+		<key>USER</key>
+		<string>__USER__</string>
+		<key>SHELL</key>
+		<string>__SHELL__</string>
+		<key>LANG</key>
+		<string>__LANG__</string>
+		<key>TMPDIR</key>
+		<string>__TMPDIR__</string>
+		<key>PATH</key>
+		<string>__PATH__</string>
+	</dict>
+	<key>WorkingDirectory</key>
+	<string>__WORKDIR__</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<false/>
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardOutPath</key>
+	<string>__LOGDIR__/dsh-web.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>__LOGDIR__/dsh-web.err.log</string>
+</dict>
+</plist>
