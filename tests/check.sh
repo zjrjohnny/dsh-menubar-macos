@@ -14,7 +14,7 @@ TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/dshmenu-check.XXXXXX")"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
 echo "==> Shell 语法"
-for script in build_app.sh install.sh uninstall.sh rotate_logs.sh tests/*.sh; do
+for script in build_app.sh install.sh uninstall.sh rotate_logs.sh package_release.sh *.command tests/*.sh; do
   /bin/bash -n "$script"
 done
 if rg -n -P '\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7F]' install.sh uninstall.sh build_app.sh tests/*.sh; then
@@ -102,6 +102,33 @@ rg -q 'plutil -replace' install.sh || fail "install.sh 未使用 plutil 安全�
 rg -q 'port_listener_pids' install.sh || fail "install.sh 未在切换前检查端口占用"
 rg -q 'func tr\(' DShMenu/main.swift || fail "菜单栏 UI 缺少中英文切换"
 [ -f .github/workflows/ci.yml ] || fail "缺少 macOS CI"
+[ -f INSTALL.md ] || fail "缺少英文安装教程"
+[ -f INSTALL.zh-CN.md ] || fail "缺少中文安装教程"
+[ -x Install.command ] || fail "Install.command 不可执行"
+[ -x Uninstall.command ] || fail "Uninstall.command 不可执行"
+[ -x package_release.sh ] || fail "package_release.sh 不可执行"
+
+echo "==> Release 安装包"
+DSHMENU_DIST_DIR="$TMP_ROOT/dist" /bin/bash package_release.sh
+PACKAGE_NAME="DShMenu-v0.1.0-macos-source-installer"
+PACKAGE_ARCHIVE="$TMP_ROOT/dist/$PACKAGE_NAME.zip"
+PACKAGE_CHECKSUM="$TMP_ROOT/dist/$PACKAGE_NAME.sha256"
+[ -f "$PACKAGE_ARCHIVE" ] || fail "未生成 Release ZIP"
+[ -f "$PACKAGE_CHECKSUM" ] || fail "未生成 Release SHA-256 文件"
+(
+  cd "$TMP_ROOT/dist"
+  /usr/bin/shasum -a 256 -c "$PACKAGE_NAME.sha256" >/dev/null
+) || fail "Release ZIP 校验和不匹配"
+mkdir -p "$TMP_ROOT/unpacked"
+/usr/bin/ditto -x -k "$PACKAGE_ARCHIVE" "$TMP_ROOT/unpacked"
+PACKAGE_ROOT="$TMP_ROOT/unpacked/$PACKAGE_NAME"
+[ -x "$PACKAGE_ROOT/Install.command" ] || fail "ZIP 未保留 Install.command 执行权限"
+[ -x "$PACKAGE_ROOT/Uninstall.command" ] || fail "ZIP 未保留 Uninstall.command 执行权限"
+[ ! -e "$PACKAGE_ROOT/.git" ] || fail "ZIP 不应包含 .git"
+[ ! -e "$PACKAGE_ROOT/build" ] || fail "ZIP 不应包含 build"
+DSHMENU_NONINTERACTIVE=1 DSHMENU_NO_PAUSE=1 \
+  "$PACKAGE_ROOT/Install.command" --help >/dev/null \
+  || fail "ZIP 中的 Install.command 无法调用安装器"
 
 echo "==> 构建脚本签名契约"
 rg -q 'codesign --force --sign -' build_app.sh \

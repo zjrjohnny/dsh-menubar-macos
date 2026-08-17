@@ -1,6 +1,6 @@
 # DSh 菜单栏控制器（DShMenu）
 
-[English](README.md) | 简体中文
+[English](README.md) | 简体中文 | [安装与使用教程](INSTALL.zh-CN.md)
 
 把 DeepSeek Harness（dsh）的 Web UI 作为 macOS 登录会话内的常驻服务运行，并用原生 AppKit 菜单栏程序控制它。服务不依赖打开的终端窗口。
 
@@ -46,7 +46,20 @@ com.zjr.dsh-logrotate
 
 > macOS Tahoe 存在菜单栏最顶边右键事件未送达应用的系统回归。在屏幕顶边点不到右键菜单时，把指针向下移动少许后再点。应用不使用全局事件监听或辅助功能权限绕过这一限制。
 
-## 安装
+## 快速安装
+
+从 [最新 Release](https://github.com/zjrjohnny/dsh-menubar-macos/releases/latest) 下载同版本的 ZIP 和 `.sha256` 文件，校验后解压并运行：
+
+```bash
+cd "$HOME/Downloads"
+shasum -a 256 -c DShMenu-v*-macos-source-installer.sha256
+cd DShMenu-v*-macos-source-installer
+./Install.command
+```
+
+Release ZIP 是源码安装包：App 会在你的 Mac 上本地编译并进行 ad-hoc 签名，不包含来源不明的预编译可执行文件。完整步骤、工作目录选择、升级、排错和卸载说明见[安装与使用教程](INSTALL.zh-CN.md)。
+
+## 从 Git 仓库安装
 
 要求：macOS 12 或更高版本、兼容的 Node.js、已经安装且可执行的 `dsh`，以及包含 `swiftc`/`codesign` 的 Xcode Command Line Tools。首个版本已在 macOS 26.6.1（Apple Silicon）、Node.js 24.18.0、dsh 0.1.0-rc.6 上验证。
 
@@ -185,7 +198,7 @@ Web 与 CLI 默认共用 `~/.dsh`。目前没有证据证明 dsh 对 sessions/st
 
 ## 发布与许可
 
-项目采用源码优先发布：在用户自己的 Mac 上编译并进行 ad-hoc 签名。未使用 Apple Developer ID 签名和公证前，不发布预编译 App 下载包，避免 Gatekeeper 带来的安全提示。
+项目采用源码优先发布。Release 提供带 SHA-256 校验和的源码安装包，App 在用户自己的 Mac 上编译并进行 ad-hoc 签名；未使用 Apple Developer ID 签名和公证前，不提供预编译 App 或 `.pkg`。
 
 DShMenu 采用 [MIT License](LICENSE)。上游署名和非官方项目声明见 [NOTICE.md](NOTICE.md)。
 

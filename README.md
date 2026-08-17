@@ -3,7 +3,7 @@
 [![CI](https://github.com/zjrjohnny/dsh-menubar-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/zjrjohnny/dsh-menubar-macos/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-English | [简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md) | [Installation guide](INSTALL.md)
 
 DShMenu runs the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 Web UI as a per-user macOS background service and provides a native AppKit
@@ -68,7 +68,20 @@ dsh --version
 
 The DShMenu installer will not silently install or upgrade dsh.
 
-## Install
+## Quick install
+
+Download the matching ZIP and `.sha256` files from the [latest release](https://github.com/zjrjohnny/dsh-menubar-macos/releases/latest), verify, extract, and run:
+
+```bash
+cd "$HOME/Downloads"
+shasum -a 256 -c DShMenu-v*-macos-source-installer.sha256
+cd DShMenu-v*-macos-source-installer
+./Install.command
+```
+
+The Release ZIP is a source installer. It builds and ad-hoc signs DShMenu locally and contains no prebuilt application executable. See the [installation and usage guide](INSTALL.md) for workspace selection, upgrades, troubleshooting, and removal.
+
+## Install from Git
 
 Clone the repository, review the installer, and run it:
 
@@ -200,10 +213,10 @@ It does not uninstall the global dsh CLI.
 
 ## Distribution
 
-Releases are source-first. The app is compiled and ad-hoc signed on the user's
-Mac. A downloadable prebuilt app should not be offered until it is signed with
-an Apple Developer ID and notarized; an ad-hoc signed download will trigger
-Gatekeeper friction.
+Releases provide a checksummed source-installer archive. The app is compiled
+and ad-hoc signed on the user's Mac; the archive does not contain a prebuilt
+app executable. A prebuilt app or `.pkg` should not be offered until it is
+signed with an Apple Developer ID and notarized.
 
 ## License
 
