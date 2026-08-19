@@ -8,6 +8,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.1.1] - 2026-08-19
+
+### Fixed
+
+- Rebuild and validate every LaunchAgent `ProgramArguments` array instead of
+  replacing numeric array paths. On macOS Tahoe, `plutil -replace` with a path
+  such as `ProgramArguments.0` inserts an element and previously left template
+  placeholders and duplicate arguments in installed plists.
+
 ## [0.1.0] - 2026-08-17
 
 ### Added

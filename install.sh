@@ -304,6 +304,43 @@ read_port() {
   printf '%s\n' "$value"
 }
 
+set_program_arguments() {
+  local plist="$1"
+  shift
+  local index=0
+  local argument
+
+  # On macOS Tahoe, replacing a numeric ProgramArguments path inserts a new
+  # element instead of replacing that index. Rebuild the array from empty so no
+  # template placeholders or duplicate arguments can survive rendering.
+  run_or_die "清空 ProgramArguments 失败: $plist" \
+    plutil -replace ProgramArguments -json '[]' "$plist"
+  for argument in "$@"; do
+    run_or_die "写入 ProgramArguments[$index] 失败: $plist" \
+      plutil -insert "ProgramArguments.$index" -string "$argument" "$plist"
+    index=$((index + 1))
+  done
+}
+
+assert_program_arguments() {
+  local plist="$1"
+  shift
+  local index=0
+  local expected
+  local actual
+
+  for expected in "$@"; do
+    actual="$(/usr/libexec/PlistBuddy -c "Print :ProgramArguments:$index" "$plist" 2>/dev/null)" || \
+      die "ProgramArguments 缺少索引 $index: $plist"
+    [ "$actual" = "$expected" ] || \
+      die "ProgramArguments[$index] 不匹配: $plist"
+    index=$((index + 1))
+  done
+  if /usr/libexec/PlistBuddy -c "Print :ProgramArguments:$index" "$plist" >/dev/null 2>&1; then
+    die "ProgramArguments 包含多余参数（从索引 $index 开始）: $plist"
+  fi
+}
+
 require_command() {
   local command_name="$1"
   local install_hint="$2"
@@ -367,12 +404,10 @@ fi
 
 run_or_die "暂存 Web LaunchAgent 模板失败" \
   cp com.zjr.dsh-web.plist.template "$STAGE_DIR/$WEB_LABEL.plist"
-run_or_die "写入 Web node 路径失败" \
-  plutil -replace ProgramArguments.0 -string "$STABLE_BIN/node" "$STAGE_DIR/$WEB_LABEL.plist"
-run_or_die "写入 Web dsh 路径失败" \
-  plutil -replace ProgramArguments.1 -string "$STABLE_BIN/dsh" "$STAGE_DIR/$WEB_LABEL.plist"
-run_or_die "写入 Web 端口参数失败" \
-  plutil -replace ProgramArguments.4 -string "$PORT" "$STAGE_DIR/$WEB_LABEL.plist"
+set_program_arguments "$STAGE_DIR/$WEB_LABEL.plist" \
+  "$STABLE_BIN/node" "$STABLE_BIN/dsh" web --port "$PORT"
+assert_program_arguments "$STAGE_DIR/$WEB_LABEL.plist" \
+  "$STABLE_BIN/node" "$STABLE_BIN/dsh" web --port "$PORT"
 for key_value in \
   "DSH_HOME=$DSH_HOME" \
   "DSH_NODE_PATH=$STABLE_BIN/node" \
@@ -398,15 +433,17 @@ run_or_die "写入 Web 标准错误路径失败" \
 
 run_or_die "暂存菜单栏 LaunchAgent 模板失败" \
   cp com.zjr.dsh-menubar.plist.template "$STAGE_DIR/$MENUBAR_LABEL.plist"
-run_or_die "写入菜单栏 App 路径失败" \
-  plutil -replace ProgramArguments.0 -string "$APP_BIN" "$STAGE_DIR/$MENUBAR_LABEL.plist"
+set_program_arguments "$STAGE_DIR/$MENUBAR_LABEL.plist" "$APP_BIN"
+assert_program_arguments "$STAGE_DIR/$MENUBAR_LABEL.plist" "$APP_BIN"
 run_or_die "写入菜单栏 DSH_HOME 失败" \
   plutil -replace EnvironmentVariables.DSH_HOME -string "$DSH_HOME" "$STAGE_DIR/$MENUBAR_LABEL.plist"
 
 run_or_die "暂存日志轮转 LaunchAgent 模板失败" \
   cp com.zjr.dsh-logrotate.plist.template "$STAGE_DIR/$LOGROTATE_LABEL.plist"
-run_or_die "写入日志轮转脚本路径失败" \
-  plutil -replace ProgramArguments.1 -string "$STABLE_BIN/rotate_logs.sh" "$STAGE_DIR/$LOGROTATE_LABEL.plist"
+set_program_arguments "$STAGE_DIR/$LOGROTATE_LABEL.plist" \
+  /bin/bash "$STABLE_BIN/rotate_logs.sh"
+assert_program_arguments "$STAGE_DIR/$LOGROTATE_LABEL.plist" \
+  /bin/bash "$STABLE_BIN/rotate_logs.sh"
 run_or_die "写入日志轮转 DSH_HOME 失败" \
   plutil -replace EnvironmentVariables.DSH_HOME -string "$DSH_HOME" "$STAGE_DIR/$LOGROTATE_LABEL.plist"
 run_or_die "写入日志轮转 HOME 失败" \

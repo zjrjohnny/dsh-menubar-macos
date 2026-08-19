@@ -68,8 +68,13 @@ rg -q '\$3 == "true"' install.sh \
   || fail "install.sh 的 disabled 状态解析未兼容旧式 true 文本"
 rg -q '__PORT__' com.zjr.dsh-web.plist.template \
   || fail "Web plist 模板缺少 __PORT__ 占位符"
-rg -q 'plutil -replace ProgramArguments\.4 -string "\$PORT"' install.sh \
-  || fail "install.sh 未通过 plutil 写入端口"
+rg -q 'set_program_arguments.*WEB_LABEL' install.sh \
+  || fail "install.sh 未重建 Web ProgramArguments"
+rg -q 'assert_program_arguments.*WEB_LABEL' install.sh \
+  || fail "install.sh 未验证 Web ProgramArguments"
+if rg -q 'plutil -replace ProgramArguments\.[0-9]+' install.sh; then
+  fail "install.sh 使用了 Tahoe 上会插入重复项的 ProgramArguments 索引 replace"
+fi
 rg -q -- '--port' com.zjr.dsh-web.plist.template \
   || fail "Web Agent 未把配置端口传给 dsh web"
 if rg -q '/\.nvm/versions/node|/Cellar/node' com.zjr.dsh-web.plist.template; then
@@ -110,7 +115,8 @@ rg -q 'func tr\(' DShMenu/main.swift || fail "菜单栏 UI 缺少中英文切换
 
 echo "==> Release 安装包"
 DSHMENU_DIST_DIR="$TMP_ROOT/dist" /bin/bash package_release.sh
-PACKAGE_NAME="DShMenu-v0.1.0-macos-source-installer"
+RELEASE_VERSION="$(/usr/bin/plutil -extract CFBundleShortVersionString raw -o - DShMenu/Info.plist)"
+PACKAGE_NAME="DShMenu-v${RELEASE_VERSION}-macos-source-installer"
 PACKAGE_ARCHIVE="$TMP_ROOT/dist/$PACKAGE_NAME.zip"
 PACKAGE_CHECKSUM="$TMP_ROOT/dist/$PACKAGE_NAME.sha256"
 [ -f "$PACKAGE_ARCHIVE" ] || fail "未生成 Release ZIP"
