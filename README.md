@@ -16,6 +16,10 @@ menu-bar controller. No terminal window needs to remain open.
 
 ## Features
 
+- **Check DSH Updates** compares the installed CLI with npm's official `latest`
+  tag only. No automatic installation or selection of `alpha`/`next`.
+- Opens the authenticated launch URL required by newer DSH releases.
+
 - Starts the dsh Web UI at login through `launchd`.
 - Left-click opens the Web UI; right-click opens service controls.
 - Start, stop, restart, login-start toggle, log viewer, and quit actions.
@@ -29,6 +33,11 @@ menu-bar controller. No terminal window needs to remain open.
 - Does not use Terminal automation, AppleScript, Accessibility, or root access.
 
 ## Architecture
+
+See [the installation tutorial](INSTALL.md): install Node.js and Xcode Command
+Line Tools, run `npm install -g @deepseek-ai/dsh@latest`, download and verify the
+[release ZIP](https://github.com/zjrjohnny/dsh-menubar-macos/releases/latest),
+extract it, then run `bash install.sh` from the extracted folder.
 
 ```text
 DShMenu.app (LSUIElement, launchd-managed, single instance)

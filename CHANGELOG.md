@@ -8,6 +8,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.1.2] - 2026-09-07
+
+- Add an on-demand DSH update check using only npm's official `latest` tag,
+  semantic version comparison and an optional copy-upgrade-command action.
+- Open validated loopback launch-token URLs for DSH browser authentication.
+- Expand Chinese and English installation and upgrade tutorials.
+
 ## [0.1.1] - 2026-08-19
 
 ### Fixed

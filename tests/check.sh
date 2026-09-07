@@ -37,6 +37,11 @@ echo "==> Swift 类型检查"
   DShMenu/main.swift
 
 echo "==> plist 模板语法"
+echo "==> DSH latest 版本比较"
+/usr/bin/swiftc -D DSHMENU_UPDATE_TEST \
+  -module-cache-path "$TMP_ROOT/swift-module-cache" \
+  DShMenu/main.swift -o "$TMP_ROOT/update-check"
+"$TMP_ROOT/update-check"
 for template in com.zjr.dsh-*.plist.template; do
   /usr/bin/plutil -lint "$template" >/dev/null
 done

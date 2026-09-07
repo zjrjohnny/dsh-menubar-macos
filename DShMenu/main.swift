@@ -570,6 +570,43 @@ func statusImage(color: NSColor) -> NSImage {
 
 // MARK: - App Delegate
 
+// Only registry /latest is used: alpha/next tags never select an update.
+func compareDSHVersions(_ left: String, _ right: String) -> ComparisonResult {
+    func parts(_ value: String) -> ([Int], [String]) {
+        let withoutBuild = value.split(separator: "+", maxSplits: 1)[0]
+        let split = withoutBuild.split(separator: "-", maxSplits: 1)
+        return (split[0].split(separator: ".").map { Int($0) ?? 0 },
+                split.count == 2 ? split[1].split(separator: ".").map(String.init) : [])
+    }
+    let (a, ap) = parts(left), (b, bp) = parts(right)
+    for i in 0..<max(a.count, b.count) {
+        let x = i < a.count ? a[i] : 0, y = i < b.count ? b[i] : 0
+        if x != y { return x < y ? .orderedAscending : .orderedDescending }
+    }
+    if ap.isEmpty != bp.isEmpty { return ap.isEmpty ? .orderedDescending : .orderedAscending }
+    for i in 0..<min(ap.count, bp.count) {
+        if ap[i] == bp[i] { continue }
+        if let x = Int(ap[i]), let y = Int(bp[i]) { return x < y ? .orderedAscending : .orderedDescending }
+        if Int(ap[i]) != nil { return .orderedAscending }
+        if Int(bp[i]) != nil { return .orderedDescending }
+        return ap[i] < bp[i] ? .orderedAscending : .orderedDescending
+    }
+    return ap.count == bp.count ? .orderedSame : (ap.count < bp.count ? .orderedAscending : .orderedDescending)
+}
+
+func installedDSHVersion() -> String? {
+    var directory = dshHomeURL.appendingPathComponent("dshmenu/bin/dsh")
+        .resolvingSymlinksInPath().deletingLastPathComponent()
+    for _ in 0..<6 {
+        if let data = try? Data(contentsOf: directory.appendingPathComponent("package.json")),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           json["name"] as? String == "@deepseek-ai/dsh",
+           let version = json["version"] as? String, !version.isEmpty { return version }
+        directory.deleteLastPathComponent()
+    }
+    return nil
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -582,6 +619,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var serviceStateCheckedAt = Date.distantPast
     private let serviceStateCacheInterval: TimeInterval = 7.0
     private var logWindowController: LogWindowController?
+    private var updateMenuItem: NSMenuItem!
+    private var updateCheckInFlight = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -620,6 +659,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         openItem.target = self
         menu.addItem(openItem)
+        updateMenuItem = NSMenuItem(title: tr("检查 DSH 更新…", "Check DSH Updates…"),
+                                   action: #selector(checkDSHUpdate), keyEquivalent: "")
+        updateMenuItem.target = self
+        menu.addItem(updateMenuItem)
         menu.addItem(.separator())
 
         for item in [
@@ -750,8 +793,77 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func checkDSHUpdate() {
+        guard !updateCheckInFlight else { return }
+        updateCheckInFlight = true
+        updateMenuItem.title = tr("正在检查 DSH 更新…", "Checking DSH Updates…")
+        let installed = installedDSHVersion()
+        var request = URLRequest(url: URL(string: "https://registry.npmjs.org/@deepseek-ai%2Fdsh/latest")!)
+        request.timeoutInterval = 15
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            var latest: String?
+            if error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
+               let data, data.count < 1_000_000,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               json["name"] as? String == "@deepseek-ai/dsh",
+               let version = json["version"] as? String,
+               version.range(of: #"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"#, options: .regularExpression) != nil {
+                latest = version
+            }
+            let resolvedVersion = latest
+            DispatchQueue.main.async { [self] in
+                updateCheckInFlight = false
+                updateMenuItem.title = tr("检查 DSH 更新…", "Check DSH Updates…")
+                let alert = NSAlert()
+                guard let latest = resolvedVersion, let installed else {
+                    alert.messageText = tr("无法完成更新检查", "Unable to Check for Updates")
+                    alert.informativeText = tr("请检查网络和本机 DSH 安装后重试。", "Check your network and local DSH installation, then retry.")
+                    NSApp.activate(ignoringOtherApps: true)
+                    alert.runModal()
+                    return
+                }
+                let available = compareDSHVersions(installed, latest) == .orderedAscending
+                alert.messageText = available ? tr("发现 DSH 更新", "DSH Update Available") : tr("无需更新 DSH", "No DSH Update Needed")
+                alert.informativeText = tr("当前：\(installed)\n官方 latest：\(latest)\n\n仅检查 latest 通道，不自动安装，也不切换到 alpha/next。升级前请检查插件兼容性。", "Installed: \(installed)\nOfficial latest: \(latest)\n\nChecks latest only. No automatic installation or switch to alpha/next. Check plugin compatibility before upgrading.")
+                alert.addButton(withTitle: tr("好", "OK"))
+                if available { alert.addButton(withTitle: tr("复制升级命令", "Copy Upgrade Command")) }
+                NSApp.activate(ignoringOtherApps: true)
+                if alert.runModal() == .alertSecondButtonReturn {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString("npm install -g @deepseek-ai/dsh@latest", forType: .string)
+                }
+            }
+        }.resume()
+    }
+
     @objc private func openWebUI() {
-        NSWorkspace.shared.open(baseURL)
+        // DSH 0.1.2 exchanges its loopback launch token for a browser cookie.
+        // Read a bounded log tail and accept only our configured local origin.
+        var destination = baseURL
+        if let handle = FileHandle(forReadingAtPath: outLogPath) {
+            defer { try? handle.close() }
+            do {
+                let end = try handle.seekToEnd()
+                try handle.seek(toOffset: end > 262144 ? end - 262144 : 0)
+                let data = try handle.readToEnd() ?? Data()
+                for line in String(decoding: data, as: UTF8.self).split(separator: "\n").reversed() {
+                    guard line.hasPrefix("dsh web: "),
+                          let url = URL(string: String(line.dropFirst(9)).trimmingCharacters(in: .whitespacesAndNewlines)),
+                          url.scheme == baseURL.scheme, url.host == baseURL.host,
+                          url.port == baseURL.port, url.user == nil, url.password == nil,
+                          url.path == "/", url.fragment == nil,
+                          let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+                          items.count == 1, items[0].name == "token",
+                          let token = items[0].value, !token.isEmpty else { continue }
+                    destination = url
+                    break
+                }
+            } catch {
+                // Older DSH releases and missing logs retain ordinary navigation.
+            }
+        }
+        NSWorkspace.shared.open(destination)
     }
 
     private func runServiceAction(
@@ -834,7 +946,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 // MARK: - 入口
 
-#if DSHMENU_SERVICE_TEST
+#if DSHMENU_UPDATE_TEST
+assert(compareDSHVersions("0.1.2-rc.1", "0.1.2-rc.1") == .orderedSame)
+assert(compareDSHVersions("0.1.3-alpha.2", "0.1.2-rc.1") == .orderedDescending)
+assert(compareDSHVersions("0.1.2-rc.9", "0.1.2-rc.10") == .orderedAscending)
+assert(compareDSHVersions("0.1.2-rc.1", "0.1.2") == .orderedAscending)
+assert(compareDSHVersions("0.1.2+build1", "0.1.2+build2") == .orderedSame)
+assert(compareDSHVersions("0.1.2-1", "0.1.2-alpha") == .orderedAscending)
+print("Update version comparison: 6 tests passed")
+#elseif DSHMENU_SERVICE_TEST
 do {
     try startService()
     fputs("DShMenu service test: startService succeeded\n", stdout)

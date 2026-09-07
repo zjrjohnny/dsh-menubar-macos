@@ -1,5 +1,15 @@
 # DShMenu installation and usage guide
 
+## Checking and upgrading DSH
+
+Right-click the menu icon → **Check DSH Updates…** to compare the installed
+version with npm's official `latest`. The check never selects `alpha`/`next`,
+installs packages or restarts the service. When an update is available, copy the
+upgrade command. Check plugin compatibility, stop the service, run
+`npm install -g @deepseek-ai/dsh@latest`, verify `dsh --version`, then start it.
+If the nvm Node version changed, rerun `bash install.sh` to refresh runtime links.
+Open the browser through the menu icon to use the authenticated DSH launch URL.
+
 This guide covers the `macos-source-installer.zip` attached to GitHub Releases. The archive contains source code: DShMenu is compiled and ad-hoc signed locally on your Mac. It is not an unnotarized prebuilt `.pkg`.
 
 ## 1. Prerequisites

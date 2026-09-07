@@ -1,5 +1,14 @@
 # DShMenu 安装与使用教程
 
+## 检查与升级 DSH
+
+右键菜单栏图标 → **检查 DSH 更新…**，显示本机版本与 npm 官方 `latest`。
+不会检查 `alpha`/`next` 通道，不会自动安装或重启。发现更新时可复制命令。
+确认第三方插件兼容后，先停止 Web 服务，再在终端执行
+`npm install -g @deepseek-ai/dsh@latest`；验证 `dsh --version` 后启动服务。
+若同时升级了 nvm Node 版本，请从源码安装目录重跑 `bash install.sh` 刷新软链。
+新版 DSH 会要求认证链接，请通过菜单栏打开网页，而非手工输入裸地址。
+
 本教程适用于 GitHub Release 中的 `macos-source-installer.zip`。安装包携带源码，App 会在你的 Mac 上本地编译并进行 ad-hoc 签名；它不是未经公证的预编译 `.pkg`。
 
 ## 1. 安装前准备

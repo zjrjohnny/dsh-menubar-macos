@@ -9,6 +9,14 @@
 
 ## 架构
 
+菜单新增 **检查 DSH 更新…**：只读取官方 `latest`，不会将 `alpha`/`next`
+当作更新，也不会自动安装。发现更新可复制升级命令。新版 DSH 的认证登录链接已支持。
+
+安装步骤：安装 Node.js 和 Xcode 命令行工具，运行
+`npm install -g @deepseek-ai/dsh@latest`；下载并校验
+[Release 安装包](https://github.com/zjrjohnny/dsh-menubar-macos/releases/latest)，
+解压后在目录内运行 `bash install.sh`。详见 [安装教程](INSTALL.zh-CN.md)。
+
 安装后由三个相互独立的 LaunchAgent 负责运行：
 
 ```text
